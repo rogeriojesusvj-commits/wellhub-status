@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin - Wellhub</title>
+  <style>
+    :root{
+      --wellhub-red:#d8232a;
+      --muted:#6b7280;
+      --card-bg:#fff;
+      --page-bg:#f4f6f8;
+    }
+    body{
+      font-family:'Segoe UI', Roboto, Arial, sans-serif;
+      background:var(--page-bg);
+      margin:0;
+      padding:28px;
+      display:flex;
+      justify-content:center;
+      min-height:100vh;
+    }
+    main{
+      width:100%;
+      max-width:900px;
+      background:var(--card-bg);
+      padding:20px;
+      border-radius:10px;
+      box-shadow:0 6px 20px rgba(0,0,0,0.06);
+    }
+    header{
+      background:var(--wellhub-red);
+      color:#fff;
+      padding:14px;
+      border-radius:8px;
+      font-weight:700;
+      text-align:center;
+      margin-bottom:14px;
+    }
+    label{
+      display:block;
+      margin-top:12px;
+      font-weight:700;
+      color:#374151;
+    }
+    input[type="text"]{
+      width:100%;
+      padding:10px;
+      border-radius:8px;
+      border:1px solid #d1d5db;
+      margin-top:6px;
+      font-size:14px;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:12px;
+    }
+    table th, table td{
+      padding:8px;
+      border:1px solid #e5e7eb;
+      font-size:13px;
+    }
+    .actions{
+      display:flex;
+      gap:8px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+    button{
+      padding:10px 14px;
+      border-radius:8px;
+      border:none;
+      cursor:pointer;
+      background:var(--wellhub-red);
+      color:#fff;
+      font-weight:700;
+    }
+    .secondary{
+      background:#374151;
+    }
+    footer{
+      margin-top:18px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+      padding:10px;
+    }
+    .small{
+      font-size:13px;
+      color:var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>Painel Admin - Wellhub (Gerar CSV)</header>
+
+    <p class="small">
+      Preencha as linhas e clique em <strong>Gerar CSV</strong>.
+      O arquivo será baixado localmente — depois você substitui manualmente no OneDrive.
+    </p>
+
+    <label>Adicionar registro (cada campo é obrigatório)</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input type="text" id="fData" placeholder="Data (ex: 2025-11-05)" style="flex:1">
+      <input type="text" id="fEmpresa" placeholder="Empresa" style="flex:2">
+      <input type="text" id="fCnpj" placeholder="CNPJ (somente números)" style="flex:1">
+      <input type="text" id="fStatus" placeholder="Status (ex: Acesso liberado)" style="flex:1">
+    </div>
+
+    <div class="actions">
+      <button id="addBtn">Adicionar linha</button>
+      <button id="clearBtn" class="secondary">Limpar tabela</button>
+      <button id="downloadBtn">Gerar CSV</button>
+    </div>
+
+    <table id="grid">
+      <thead>
+        <tr><th>#</th><th>Data</th><th>Empresa</th><th>CNPJ</th><th>Status</th><th>Ação</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <p class="small" style="margin-top:10px">
+      Formato do CSV gerado: <strong>Data, Empresa, CNPJ, Status</strong>
+    </p>
+
+    <footer>© 2025 Wellhub - Consulta Corporativa - criado por Equipe Suporte Staff</footer>
+  </main>
+
+  <script>
+    const tbody = document.querySelector('#grid tbody');
+    let linhas = [];
+
+    function limpaCampos(){
+      document.getElementById('fData').value='';
+      document.getElementById('fEmpresa').value='';
+      document.getElementById('fCnpj').value='';
+      document.getElementById('fStatus').value='';
+    }
+
+    function atualizarGrid(){
+      tbody.innerHTML='';
+      linhas.forEach((r,idx)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx+1}</td>
+          <td>${r.data}</td>
+          <td>${r.empresa}</td>
+          <td>${r.cnpj}</td>
+          <td>${r.status}</td>
+          <td><button data-idx="${idx}" class="secondary">Remover</button></td>`;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('button').forEach(b=>{
+        b.addEventListener('click', e=>{
+          const i = Number(e.target.dataset.idx);
+          linhas.splice(i,1);
+          atualizarGrid();
+        });
+      });
+    }
+
+    document.getElementById('addBtn').addEventListener('click', ()=>{
+      const data = document.getElementById('fData').value.trim();
+      const empresa = document.getElementById('fEmpresa').value.trim();
+      const cnpj = document.getElementById('fCnpj').value.replace(/\D/g,'').padStart(14,'0');
+      const status = document.getElementById('fStatus').value.trim();
+
+      if(!data||!empresa||!cnpj||!status){
+        alert('Preencha todos os campos.');
+        return;
+      }
+      linhas.push({data, empresa, cnpj, status});
+      atualizarGrid();
+      limpaCampos();
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      if(confirm('Limpar todas as linhas?')){
+        linhas=[];
+        atualizarGrid();
+      }
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', ()=>{
+      if(linhas.length===0){
+        alert('Não há linhas para gerar.');
+        return;
+      }
+      const rows = [['Data','Empresa','CNPJ','Status'], ...linhas.map(r=>[r.data, r.empresa, r.cnpj, r.status])];
+      const csv = rows.map(r=>r.map(c=>('"'+c.replace(/"/g,'""')+'"')).join(',')).join('\r\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'base_wellhub.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      alert('CSV gerado. Substitua manualmente o arquivo no OneDrive.');
+    });
+  </script>
+</body>
+</html>
